@@ -1,6 +1,13 @@
-#include <iostream>
+#include "app_base.hpp"
+
+class MyApp : public imr::AppBase {
+
+};
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+
+    MyApp app;
+    app.run();
+
     return 0;
 }
