@@ -6,7 +6,7 @@
 
 namespace imr {
 
-    const std::vector<std::string> AppBase::deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    const std::vector<const char*> AppBase::deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
     const std::vector<const char*> AppBase::validationLayers = {"VK_LAYER_KHRONOS_validation"};
 
     static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(
@@ -115,15 +115,69 @@ namespace imr {
         auto physicalDevices = instance.enumeratePhysicalDevices();
         if (physicalDevices.empty()) throw std::runtime_error("Failed to find GPUs with Vulkan support!");
 
-        auto suitableDevices = physicalDevices |
-                std::views::filter([this](auto& dev){return isDeviceSuitable(dev, this->surface);});
+        bool foundSuitablePhysicalDevice = false;
+        for (auto& dev : physicalDevices) {
+            if (isDeviceSuitable(dev, this->surface)) {
+                foundSuitablePhysicalDevice = true;
+                this->physicalDevice = std::move(dev);
+                break;
+            }
+        }
+//        auto suitableDevices = physicalDevices |
+//                std::views::filter([this](auto& dev){return isDeviceSuitable(dev, this->surface);});
 
-        if (suitableDevices.empty()) throw std::runtime_error("Failed to find a suitable GPU!");
+        if (!foundSuitablePhysicalDevice) throw std::runtime_error("Failed to find a suitable GPU!");
 
-        this->physicalDevice = std::move(suitableDevices.front());
+        // this->physicalDevice = std::move(suitableDevices.front());
         std::cout << "Physical Device: " << this->physicalDevice.getProperties().deviceName << '\n';
 
+        // Logical Device creation
+        bool foundGraphicsQueue = false, foundPresentQueue = false;
+        uint32_t graphicsQueueFamilyIndex = 0, presentQueueFamilyIndex = 0;
+        auto queueFamilies = this->physicalDevice.getQueueFamilyProperties();
+        for (int i = 0; i < queueFamilies.size(); i++) {
+            if (!foundGraphicsQueue && (queueFamilies[i].queueCount > 0 && queueFamilies[i].queueFlags & vk::QueueFlagBits::eGraphics)) {
+                graphicsQueueFamilyIndex = i;
+                foundGraphicsQueue = true;
+            }
 
+            if (!foundPresentQueue && (queueFamilies[i].queueCount > 0 && this->physicalDevice.getSurfaceSupportKHR(i, *this->surface))) {
+                presentQueueFamilyIndex = i;
+                foundPresentQueue = true;
+            }
+
+            if (foundPresentQueue && foundGraphicsQueue) break;
+        }
+
+        std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
+
+        float queuePriority = 1.0f;
+        queueCreateInfos.push_back({{}, graphicsQueueFamilyIndex, 1, &queuePriority});
+
+        if (graphicsQueueFamilyIndex != presentQueueFamilyIndex) {
+            queueCreateInfos.push_back({{}, presentQueueFamilyIndex, 1, &queuePriority});
+        }
+
+        vk::PhysicalDeviceFeatures deviceFeatures {};
+        deviceFeatures.samplerAnisotropy = VK_TRUE;
+
+        vk::DeviceCreateInfo deviceCreateInfo {
+            {},
+            queueCreateInfos,
+            validationLayers,
+            deviceExtensions,
+            &deviceFeatures
+        };
+
+        this->device = this->physicalDevice.createDevice(deviceCreateInfo);
+
+        // Command Pool creation
+        vk::CommandPoolCreateInfo cmdPoolCreateInfo {
+                vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+                graphicsQueueFamilyIndex
+        };
+
+        this->commandPool = this->device.createCommandPool(cmdPoolCreateInfo);
     }
 
 

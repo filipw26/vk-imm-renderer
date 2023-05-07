@@ -28,7 +28,7 @@ namespace imr {
         void initGlfw();
 
         // Vulkan
-        static const std::vector<std::string> deviceExtensions;
+        static const std::vector<const char*> deviceExtensions;
         static const std::vector<const char*> validationLayers;
 
         vk::raii::Context context;
@@ -43,6 +43,28 @@ namespace imr {
         vk::raii::Queue presentQueue{VK_NULL_HANDLE};
 
         vk::raii::CommandPool commandPool{VK_NULL_HANDLE};
+
+        vk::Format swapchainImageFormat;
+        vk::Extent2D swapchainExtent;
+
+        std::vector<vk::raii::Framebuffer> swapchainFramebuffers;
+        vk::raii::RenderPass renderPass{VK_NULL_HANDLE};
+
+        // Frame info
+        std::vector<vk::raii::Image> depthImages;
+        std::vector<vk::raii::DeviceMemory> depthImageMemorys;
+        std::vector<vk::raii::ImageView> depthImageViews;
+        std::vector<vk::Image> swapchainImages;
+        std::vector<vk::raii::ImageView> swapchainImageViews;
+        std::vector<vk::raii::Semaphore> imageAvailableSemaphores;
+        std::vector<vk::raii::Semaphore> renderFinishedSemaphores;
+        std::vector<vk::raii::Fence> imageInFlightFences;
+
+        vk::Extent2D windowExtent;
+
+        vk::raii::SwapchainKHR swapchain{VK_NULL_HANDLE};
+
+        uint32_t currentFrame = 0;
 
         std::vector<const char*> getGlfwRequiredExtensions();
         bool isDeviceSuitable(vk::raii::PhysicalDevice& physicalDev, vk::raii::SurfaceKHR& surf);
@@ -59,9 +81,9 @@ namespace imr {
 
 
             // draw frame
-            renderer.begin();
+            //renderer.begin();
             onDraw(renderer);
-            renderer.end();
+            //renderer.end();
         }
 
         void run() {
