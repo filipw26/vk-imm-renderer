@@ -60,9 +60,18 @@ namespace imr {
         std::vector<vk::raii::Semaphore> renderFinishedSemaphores;
         std::vector<vk::raii::Fence> imageInFlightFences;
 
+        std::vector<vk::raii::CommandBuffer> commandBuffers;
+
         vk::Extent2D windowExtent;
 
         vk::raii::SwapchainKHR swapchain{VK_NULL_HANDLE};
+
+        vk::raii::PipelineLayout pipelineLayout{VK_NULL_HANDLE};
+        vk::raii::Pipeline pipeline{VK_NULL_HANDLE};
+        vk::raii::ShaderModule vertexShaderModule{VK_NULL_HANDLE};
+        vk::raii::ShaderModule fragmentShaderModule{VK_NULL_HANDLE};
+
+        vk::raii::DebugUtilsMessengerEXT debugMessenger{VK_NULL_HANDLE};
 
         uint32_t currentFrame = 0;
 
